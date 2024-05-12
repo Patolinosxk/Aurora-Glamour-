@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>Aurora Glamour</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciar Produtos</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f8dbf5;
+        }
+        .container {
+            max-width: 600px;
+            margin: auto;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+            color: #e91e63;
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        li {
+            margin-bottom: 10px;
+            padding: 10px;
+            background-color: #fff;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .button {
+            padding: 5px 10px;
+            background-color: #e91e63;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        .button:hover {
+            background-color: #c2185b;
+        }
+        .quantity {
+            display: flex;
+            align-items: center;
+        }
+        .quantity input {
+            width: 40px;
+            text-align: center;
+            margin: 0 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="productListSection">
+            <h1>AURORA GLAMOUR</h1>
+            <h1>estoque</h1>
+            <ul id="productList">
+                <!-- Produtos serão adicionados aqui -->
+            </ul>
+            <div>
+                <button class="button" onclick="addProduct()">Adicionar Produto</button>
+                <button class="button" onclick="removeLastProduct()">Remover Último Produto</button>
+                <button class="button" onclick="switchToSalesPage()">Ir para Página de Vendas</button>
+            </div>
+        </div>
+
+        <div id="salesPage" style="display: none;">
+            <h1>Página de Vendas</h1>
+            <ul id="salesList">
+                <!-- Produtos selecionados para venda serão adicionados aqui -->
+            </ul>
+            <div>
+                <button class="button" onclick="cancelSales()">Voltar para Estoque</button>
+                <button class="button" onclick="completeSales()">Finalizar Compra</button>
+            </div>
+            <div>
+                <p>Total Vendido: <span id="totalValue">R$ 0</span></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        var productListSection = document.getElementById('productListSection');
+        var salesPage = document.getElementById('salesPage');
+        var productList = document.getElementById('productList');
+        var salesList = document.getElementById('salesList');
+        var totalValueElement = document.getElementById('totalValue');
+        var totalValue = 0;
+        var products = [];
+
+        function addProduct() {
+            var productName = prompt('Digite o nome do novo produto:');
+            var productPrice = prompt('Digite o preço do novo produto:');
+            if (productName !== null && productName !== '' && productPrice !== null && productPrice !== '') {
+                var quantity = parseInt(prompt('Digite a quantidade de ' + productName + ' a adicionar:'));
+                if (!isNaN(quantity) && quantity > 0) {
+                    var product = {
+                        name: productName,
+                        price: parseFloat(productPrice),
+                        quantity: quantity
+                    };
+                    products.push(product);
+                    updateProductList();
+                }
+            }
+        }
+
+        function updateProductList() {
+            productList.innerHTML = '';
+            products.forEach(function(product, index) {
+                var newProduct = document.createElement('li');
+                newProduct.innerHTML = '<span><strong>Nome:</strong> ' + product.name + ', <strong>Preço:</strong> R$ ' + product.price.toFixed(2) + ', <strong>Estoque:</strong> ' + product.quantity + '</span>' + 
+                                       '<div class="quantity"><button class="button" onclick="decreaseStock(' + index + ')">-</button><input type="number" min="0" value="' + product.quantity + '" id="quantityInput_' + index + '"><button class="button" onclick="increaseStock(' + index + ')">+</button></div>' +
+                                       '<button class="button" onclick="removeProduct(' + index + ')">Excluir</button>';
+                productList.appendChild(newProduct);
+            });
+        }
+
+        function removeProduct(index) {
+            products.splice(index, 1);
+            updateProductList();
+        }
+
+        function removeLastProduct() {
+            products.pop();
+            updateProductList();
+        }
+
+        function switchToSalesPage() {
+            productListSection.style.display = 'none';
+            salesPage.style.display = 'block';
+            updateSalesList();
+        }
+
+        function updateSalesList() {
+            salesList.innerHTML = '';
+            products.forEach(function(product) {
+                var newSalesProduct = document.createElement('li');
+                newSalesProduct.innerHTML = '<span><strong>Nome:</strong> ' + product.name + ', <strong>Preço:</strong> R$ ' + product.price.toFixed(2) + '</span> <div class="quantity"><input type="number" min="0" value="0" id="quantityInputSales_' + product.name + '"></div>';
+                newSalesProduct.dataset.name = product.name;
+                salesList.appendChild(newSalesProduct);
+            });
+        }
+
+        function cancelSales() {
+            productListSection.style.display = 'block';
+            salesPage.style.display = 'none';
+            totalValue = 0;
+            totalValueElement.innerText = 'R$ ' + totalValue.toFixed(2);
+        }
+
+        function completeSales() {
+            totalValue = 0;
+            salesList.childNodes.forEach(function(salesProduct) {
+                var productName = salesProduct.dataset.name;
+                var quantityInput = document.getElementById('quantityInputSales_' + productName);
+                var soldQuantity = parseInt(quantityInput.value);
+                var product = products.find(function(prod) {
+                    return prod.name === productName;
+                });
+                if (product && soldQuantity > 0 && soldQuantity <= product.quantity) {
+                    product.quantity -= soldQuantity;
+                    totalValue += product.price * soldQuantity;
+                }
+            });
+            totalValueElement.innerText = 'R$ ' + totalValue.toFixed(2);
+            updateProductList();
+            cancelSales();
+        }
+
+        function increaseStock(index) {
+            var input = document.getElementById('quantityInput_' + index);
+            var value = parseInt(input.value, 10);
+            input.value = value + 1;
+            products[index].quantity = value + 1;
+        }
+
+        function decreaseStock(index) {
+            var input = document.getElementById('quantityInput_' + index);
+            var value = parseInt(input.value, 10);
+            if (value > 0)
+                input.value
+          = value - 1;
+            products[index].quantity = value - 1;
+        }
+    </script>
+</body>
+  </html>
